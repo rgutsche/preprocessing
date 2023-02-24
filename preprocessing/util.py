@@ -5,13 +5,19 @@ from nipype.interfaces import fsl
 from nipype.interfaces.ants import N4BiasFieldCorrection
 from nipype.interfaces.dcm2nii import Dcm2niix
 from HD_BET.run import run_hd_bet
+
 import os
 from nipype.interfaces.fsl import ApplyMask
 import SimpleITK as sitk
 import numpy as np
 
 
-def convert_to_nii(dicom_dir_path, out_dir_path, out_path):
+def pet_convert_to_nii(out_dir_path, input_file):
+    cmd = f'ecat2nii -O={out_dir_path} {input_file}'
+    os.system(cmd)
+
+
+def mr_convert_to_nii(dicom_dir_path, out_dir_path, out_path):
     """
     Convert dir containing dicom series to nifti file. File will be compressed (out_filename.nii.gz).
     dcm2niix tool is used.
@@ -92,7 +98,7 @@ def n4_bias_field_correction(in_path, out_path, brain_mask_path):
     n4.run()
 
 
-def tumor_segmentation(in_dir_path, out_dir_path):
+def mr_tumor_segmentation(in_dir_path, out_dir_path):
     """
     Perform HD-GLIO segmentation for complete folder with the following structure:
     t1_native: PATIENT_IDENTIFIER_0000.nii.gz
@@ -104,6 +110,17 @@ def tumor_segmentation(in_dir_path, out_dir_path):
     :return: tumor segmentation
     """
     cmd = f'hd_glio_predict_folder -i {in_dir_path} -o {out_dir_path}'
+    os.system(cmd)
+
+def pet_tumor_segmentation(in_dir_path, out_dir_path):
+    """
+    Perform nnunet pet segmentation for complete folder with the following structure:
+    pet: PATIENT_IDENTIFIER_0004.nii.gz
+    :param in_dir_path: str or pathlike object |
+    :param out_dir_path: str or pathlike object |
+    :return: tumor segmentation
+    """
+    cmd = f'nnUNet_predict -i {in_dir_path} -o {out_dir_path} -t 070 -m 3d_fullres -tr nnUNetTrainerV2'
     os.system(cmd)
 
 

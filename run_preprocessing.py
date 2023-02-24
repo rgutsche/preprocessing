@@ -1,22 +1,21 @@
 """
 Preprocessing Script
 author: Robin Gutsche
-last-update: 26-08-2021, 22:17
+last-update: 24-02-2023
 """
-
 from multiprocessing import Process, Queue
-from preprocessing.run import run_preprocessing
+from preprocessing.run_v2 import run_preprocessing
 from preprocessing import settings
-from preprocessing.helpers import listener_process, listener_configurer, worker_configurer
+from preprocessing.helpers import worker_configurer
 
-# if __name__ == '__main__':
-settings.init(run_from='btupc09', project_name='CETEG_PROGNOSE_PART2')
-number_of_processes = 9
+settings.init(project_name='TEMP_V1')
+
+number_of_processes = 1
+
 pids = sorted([x.name for x in settings.raw_path.joinpath(settings.project).glob('*') if not x.name.startswith('.')])
 
 q = Queue(-1)
-listener = Process(target=listener_process, args=(q, listener_configurer))
-listener.start()
+
 processes = []
 i = 0
 for pid in pids:
@@ -32,7 +31,6 @@ for pid in pids:
 
         processes = []
 q.put_nowait(None)
-listener.join()
 
 
 
