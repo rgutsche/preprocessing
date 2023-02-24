@@ -242,6 +242,7 @@ def run_preprocessing(pid, queue, configurer):
     # shutil.move(str(in_file), str(temp_dir))
     # pet_tumor_segmentation(temp_dir, temp_dir)
 
+    temp_dir.joinpath(f'{pid}_0000.nii.gz').rename(temp_dir.joinpath(f'{pid}_0000.nii.gz'))
     shutil.move(str(temp_dir.joinpath(f'{pid}_0004.nii.gz')), str(out_dir))
 
     temp_dir.joinpath(f'{pid}.nii.gz').rename(temp_dir.joinpath(f'{pid}_pet_segmentation.nii.gz'))
