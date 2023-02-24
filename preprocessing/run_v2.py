@@ -196,7 +196,7 @@ def run_preprocessing(pid, queue, configurer):
 #     #%% 4) Multiply brain segmentation with images
 #     print(f'PID: {pid}. Apply brain segmentation mask')
 #
-#     out_dir = settings.processed_path.joinpath(settings.project, pid)
+    out_dir = settings.processed_path.joinpath(settings.project, pid)
 #     if not out_dir.is_dir():
 #         out_dir.mkdir(parents=True)
 #
@@ -234,14 +234,21 @@ def run_preprocessing(pid, queue, configurer):
 
 #%% PET Segmentation
     temp_dir = settings.intermediate_path.joinpath(settings.project, pid, 'temp')
-    if not temp_dir.is_dir():
-        temp_dir.mkdir(parents=True)
+    # if not temp_dir.is_dir():
+    #     temp_dir.mkdir(parents=True)
     # in_file = settings.intermediate_path.joinpath(settings.project, pid, f'{pid}_0004.nii.gz')
     # in_file.rename(in_file.parent.joinpath(f'{pid}_0000.nii.gz'))
-    in_file = settings.intermediate_path.joinpath(settings.project, pid, f'{pid}_0000.nii.gz')
-    shutil.move(str(in_file), str(temp_dir))
-    # out_file = str(settings.intermediate_path.joinpath(settings.project, pid, f'pet_segmentation.nii.gz'))
-    pet_tumor_segmentation(temp_dir, temp_dir)
+    # in_file = settings.intermediate_path.joinpath(settings.project, pid, f'{pid}_0000.nii.gz')
+    # shutil.move(str(in_file), str(temp_dir))
+    # pet_tumor_segmentation(temp_dir, temp_dir)
+
+    shutil.move(str(temp_dir.joinpath(f'{pid}_0004.nii.gz')), str(out_dir))
+
+    temp_dir.joinpath(f'{pid}.nii.gz').rename(temp_dir.joinpath(f'{pid}_pet_segmentation.nii.gz'))
+    shutil.move(temp_dir.joinpath(f'{pid}_pet_segmentation.nii.gz'), str(out_dir))
+
+
+
 
 #%%
 # #%% 5) N4BiasFieldCorrection
