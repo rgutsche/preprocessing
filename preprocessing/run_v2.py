@@ -61,7 +61,34 @@ def run_preprocessing(pid, queue, configurer):
     # out_file = out_file.parent.joinpath('pet.nii')
     # cmd = f'gzip {out_file}'
     # os.system(cmd)
-    #
+
+    sequences = ['t1_km', 't2', 'flair', 'pet']
+    for sequence in sequences:
+        print(f'PID: {pid}. Reorientation for: {sequence}')
+        in_file = settings.intermediate_path.joinpath(settings.project, pid, f'{sequence}.nii.gz')
+
+        # Clear the sform/qform affines
+        cmd = f'fslorient -deleteorient {in_file}'
+        os.system(cmd)
+
+        # Rotate the data array into RAS
+        # orientation (exact command depends
+        # on original data orientation
+        cmd = f'fslswapdim imagename a b c {in_file}'
+        os.system(cmd)
+
+        # Reset the qform. We can use an identity
+        # matrix, as the scaling parameters will be
+        # overridden by the image pixdims
+        cmd = f'fslorient -setqform 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 {in_file}'
+        os.system(cmd)
+
+        # Reset the qform code
+        cmd = f'fslorient -setqformcode 1 {in_file}'
+        os.system(cmd)
+
+
+    ### PROBLEM - ORIENTATION PET ###
     # cmd = f'fslswapdim {out_file} x y -z {out_file}'
     # os.system(cmd)
 
@@ -73,78 +100,55 @@ def run_preprocessing(pid, queue, configurer):
     # #     reorient_2_std(in_file, out_file)
 
     #%% 2) Registration
-    sequences = ['t1_km', 't2', 'flair', 'pet']
+    # sequences = ['t1_km', 't2', 'flair', 'pet']
+    # #
+    # # for sequence in sequences:
+    # #     print(f'PID: {pid}. Registration for: {sequence}')
+    # #
+    # #     in_file = settings.intermediate_path.joinpath(settings.project, pid, f'{sequence}.nii.gz')
+    # #     ref_file = settings.intermediate_path.joinpath(settings.project, pid, f't1_native.nii.gz')
+    # #     out_file = settings.intermediate_path.joinpath(settings.project, pid, f'{sequence}_co.nii.gz')
+    # #     registration(in_file, ref_file, out_file)
+    # #
+    # # print(f'PID: {pid}. Registration for: {sequence} done')
     #
-    # for sequence in sequences:
-    #     print(f'PID: {pid}. Registration for: {sequence}')
+    # #%% 3) Brain Segmentation
+    # print(f'PID: {pid}. Brain segmentation')
     #
-    #     in_file = settings.intermediate_path.joinpath(settings.project, pid, f'{sequence}.nii.gz')
-    #     ref_file = settings.intermediate_path.joinpath(settings.project, pid, f't1_native.nii.gz')
-    #     out_file = settings.intermediate_path.joinpath(settings.project, pid, f'{sequence}_co.nii.gz')
-    #     registration(in_file, ref_file, out_file)
+    # in_file = str(settings.intermediate_path.joinpath(settings.project, pid, f't1_native.nii.gz'))
+    # out_file = settings.intermediate_path.joinpath(settings.project, pid, f't1_native_hdbet.nii.gz')
+    # brain_segmentation(in_file, str(out_file), device=0)
+    # out_file.rename(out_file.parent.joinpath(f'{pid}_0000.nii.gz'))
     #
-    # print(f'PID: {pid}. Registration for: {sequence} done')
-
-    #%% 3) Brain Segmentation
-    print(f'PID: {pid}. Brain segmentation')
-
-    in_file = str(settings.intermediate_path.joinpath(settings.project, pid, f't1_native.nii.gz'))
-    out_file = settings.intermediate_path.joinpath(settings.project, pid, f't1_native_hdbet.nii.gz')
-    brain_segmentation(in_file, str(out_file), device=0)
-    out_file.rename(out_file.parent.joinpath(f'{pid}_0000.nii.gz'))
-
-    out_file.parent.joinpath(f't1_native_hdbet_mask.nii.gz').rename(out_file.parent.joinpath(f'brain_segmentation.nii.gz'))
-    print(f'PID: {pid}. Brain segmentation and renaming done.')
-
-
-    #%% 4) Multiply brain segmentation with images
-    print(f'PID: {pid}. Apply brain segmentation mask')
-
-    for i, sequence in enumerate(sequences):
-        mask_file = settings.intermediate_path.joinpath(settings.project, pid, f'brain_segmentation.nii.gz')
-        in_file = settings.intermediate_path.joinpath(settings.project, pid, f'{sequence}_co.nii.gz')
-        out_file = settings.intermediate_path.joinpath(settings.project, pid, f'{sequence}_hdbet.nii.gz')
-        crop_to_mask(in_file, mask_file, out_file)
-        out_file.rename(out_file.parent.joinpath(f'{pid}_000{i + 1}.nii.gz'))
-
-    print(f'PID: {pid}. Application brain segmentation mask done')
-
-    # #%% 5) N4BiasFieldCorrection
+    # out_file.parent.joinpath(f't1_native_hdbet_mask.nii.gz').rename(out_file.parent.joinpath(f'brain_segmentation.nii.gz'))
+    # print(f'PID: {pid}. Brain segmentation and renaming done.')
     #
-    # # logger.warning(f'PID: {pid}. Perform N4BiasFieldCorrection')
-    # print(f'PID: {pid}. Perform N4BiasFieldCorrection')
     #
-    # sequences = ['t1_native', 't1_km', 't2', 'flair']
+    # #%% 4) Multiply brain segmentation with images
+    # print(f'PID: {pid}. Apply brain segmentation mask')
     #
     # for i, sequence in enumerate(sequences):
-    #     out_dir = settings.processed_path.joinpath(settings.project, pid, study)
-    #     if not out_dir.is_dir():
-    #         out_dir.mkdir(parents=True)
-    #     in_file = str(settings.intermediate_path.joinpath(settings.project, pid, study, f'{sequence}_hdbet.nii.gz'))
-    #     out_file = settings.processed_path.joinpath(settings.project, pid, study, f'{sequence}_hdbet_n4.nii.gz')
-    #     brain_mask = str(
-    #         settings.intermediate_path.joinpath(settings.project, pid, study, f'brain_segmentation.nii.gz'))
-    #     n4_bias_field_correction(in_file, str(out_file), brain_mask)
+    #     mask_file = settings.intermediate_path.joinpath(settings.project, pid, f'brain_segmentation.nii.gz')
+    #     in_file = settings.intermediate_path.joinpath(settings.project, pid, f'{sequence}_co.nii.gz')
+    #     out_file = settings.intermediate_path.joinpath(settings.project, pid, f'{sequence}_hdbet.nii.gz')
+    #     crop_to_mask(in_file, mask_file, out_file)
+    #     out_file.rename(out_file.parent.joinpath(f'{pid}_000{i + 1}.nii.gz'))
     #
-    #     # 6) Rename files to nnU-Net format
-    #     out_file.rename(out_file.parent.joinpath(f'{pid}_000{i}.nii.gz'))
-    #
-    # # logger.warning(f'PID: {pid}. N4BiasFieldCorrection and renaming done')
-    # print(f'PID: {pid}. N4BiasFieldCorrection and renaming done')
+    # print(f'PID: {pid}. Application brain segmentation mask done')
     #
     # #%% 7) HD-GLIO tumor segmentation
     #
     # # logger.warning(f'PID: {pid}. MR tumor segmentation')
     # print(f'PID: {pid}. MR tumor segmentation')
     #
-    # in_dir_path = settings.processed_path.joinpath(settings.project, pid, study)
+    # in_dir_path = settings.processed_path.joinpath(settings.project, pid)
     #
-    # tumor_segmentation(str(in_dir_path), str(in_dir_path))
+    # mr_tumor_segmentation(str(in_dir_path), str(in_dir_path))
     #
     # in_dir_path.joinpath(f'{pid}.nii.gz').rename(in_dir_path.joinpath(f'{pid}_mr_segmentation.nii.gz'))
     #
     # shutil.move(str(
-    #     settings.intermediate_path.joinpath(settings.project, pid, study, f'brain_segmentation.nii.gz')),
+    #     settings.intermediate_path.joinpath(settings.project, pid, f'brain_segmentation.nii.gz')),
     #             in_dir_path)
     #
     # in_dir_path.joinpath(f'brain_segmentation.nii.gz').rename(in_dir_path.joinpath(f'{pid}_brain_segmentation.nii.gz'))
@@ -154,8 +158,33 @@ def run_preprocessing(pid, queue, configurer):
     #     in_dir_path.joinpath(remove).unlink()
     #
     # print(f'PID: {pid}. MR tumor segmentation done')
-    #
-    # # logger.warning(f'PID: {pid}. MR tumor segmentation done')
+
+#%% PET Segmentation
+
+# #%% 5) N4BiasFieldCorrection
+#
+# # logger.warning(f'PID: {pid}. Perform N4BiasFieldCorrection')
+# print(f'PID: {pid}. Perform N4BiasFieldCorrection')
+#
+# sequences = ['t1_native', 't1_km', 't2', 'flair']
+#
+# for i, sequence in enumerate(sequences):
+#     out_dir = settings.processed_path.joinpath(settings.project, pid, study)
+#     if not out_dir.is_dir():
+#         out_dir.mkdir(parents=True)
+#     in_file = str(settings.intermediate_path.joinpath(settings.project, pid, study, f'{sequence}_hdbet.nii.gz'))
+#     out_file = settings.processed_path.joinpath(settings.project, pid, study, f'{sequence}_hdbet_n4.nii.gz')
+#     brain_mask = str(
+#         settings.intermediate_path.joinpath(settings.project, pid, study, f'brain_segmentation.nii.gz'))
+#     n4_bias_field_correction(in_file, str(out_file), brain_mask)
+#
+#     # 6) Rename files to nnU-Net format
+#     out_file.rename(out_file.parent.joinpath(f'{pid}_000{i}.nii.gz'))
+#
+# # logger.warning(f'PID: {pid}. N4BiasFieldCorrection and renaming done')
+# print(f'PID: {pid}. N4BiasFieldCorrection and renaming done')
+
+    # logger.warning(f'PID: {pid}. MR tumor segmentation done')
     #
     # #%% 8) Standardization
     #
