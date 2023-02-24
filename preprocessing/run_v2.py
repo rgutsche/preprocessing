@@ -75,20 +75,17 @@ def run_preprocessing(pid, queue, configurer):
 
 
     #%% 2) Registration
-    # sequences = ['t1_km', 't2', 'flair', 'pet']
-    #
-    # for sequence in sequences:
-    #     # logger.warning(f'PID: {pid}. Registration for: {sequence}')
-    #     print(f'PID: {pid}. Registration for: {sequence}')
-    #
-    #     in_file = settings.intermediate_path.joinpath(settings.project, pid, f'{sequence}.nii.gz')
-    #     ref_file = settings.intermediate_path.joinpath(settings.project, pid, f't1_native.nii.gz')
-    #     out_file = settings.intermediate_path.joinpath(settings.project, pid, f'{sequence}_co.nii.gz')
-    #     registration(in_file, ref_file, out_file)
-    #
-    # # logger.warning(f'PID: {pid}. Registration for: {sequence} done')
-    #
-    # print(f'PID: {pid}. Registration for: {sequence} done')
+    sequences = ['t1_km', 't2', 'flair', 'pet']
+
+    for sequence in sequences:
+        print(f'PID: {pid}. Registration for: {sequence}')
+
+        in_file = settings.intermediate_path.joinpath(settings.project, pid, f'{sequence}.nii.gz')
+        ref_file = settings.intermediate_path.joinpath(settings.project, pid, f't1_native.nii.gz')
+        out_file = settings.intermediate_path.joinpath(settings.project, pid, f'{sequence}_co.nii.gz')
+        registration(in_file, ref_file, out_file)
+
+    print(f'PID: {pid}. Registration for: {sequence} done')
 
     # #%% 3) Brain Segmentation
     # # logger.warning(f'PID: {pid}. Brain segmentation')
