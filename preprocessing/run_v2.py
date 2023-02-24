@@ -237,6 +237,7 @@ def run_preprocessing(pid, queue, configurer):
     if not temp_dir.is_dir():
         temp_dir.mkdir(parents=True)
     in_file = str(settings.intermediate_path.joinpath(settings.project, pid, f'{pid}_0004.nii.gz'))
+    in_file.rename(in_file.parent.joinpath(f'{pid}_0000.nii.gz'))
     shutil.move(str(in_file), str(temp_dir))
     # out_file = str(settings.intermediate_path.joinpath(settings.project, pid, f'pet_segmentation.nii.gz'))
     pet_tumor_segmentation(temp_dir, temp_dir)
