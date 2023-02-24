@@ -18,7 +18,7 @@ def pet_convert_to_nii(out_dir_path, input_file):
 
 def reorient_2_std(input_file, output_file):
     reorient = fsl.Reorient2Std()
-    reorient.inputs.out_file = input_file
+    reorient.inputs.in_file = input_file
     reorient.inputs.out_file = output_file
     reorient.run()
 
