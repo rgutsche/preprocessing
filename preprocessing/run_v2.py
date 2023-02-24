@@ -65,13 +65,13 @@ def run_preprocessing(pid, queue, configurer):
     cmd = f'fslswapdim {out_file} x y -z {out_file}'
     os.system(cmd)
 
-    origin = sitk.ReadImage(settings.intermediate_path.joinpath(settings.project, pid, 't1_native.nii.gz')).GetOrigin()
+    origin = sitk.ReadImage(str(settings.intermediate_path.joinpath(settings.project, pid, 't1_native.nii.gz'))).GetOrigin()
     sequences = ['t1_km', 't2', 'flair', 'pet']
     for sequence in sequences:
         in_file = settings.intermediate_path.joinpath(settings.project, pid, f'{sequence}.nii.gz')
-        sitk_img = sitk.ReadImage(in_file)
+        sitk_img = sitk.ReadImage(str(in_file))
         sitk_img.SetOrigin(origin)
-        sitk.WriteImage(sitk_img, in_file)
+        sitk.WriteImage(sitk_img, str(in_file))
 
     ### PROBLEM - ORIENTATION PET ###
     # cmd = f'fslswapdim {out_file} x y -z {out_file}'
