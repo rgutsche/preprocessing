@@ -65,7 +65,7 @@ def run_preprocessing(pid, queue, configurer):
     sequences = ['t1_native', 't1_km', 't2', 'flair', 'pet']
     for sequence in sequences:
         in_file = settings.intermediate_path.joinpath(settings.project, pid, f'{sequence}.nii.gz')
-        out_file = settings.intermediate_path.joinpath(settings.project, pid, f'{sequence}_2std.nii.gz')
+        out_file = settings.intermediate_path.joinpath(settings.project, pid, f'{sequence}_reorient.nii.gz')
         reorient_2_std(in_file, out_file)
         # reorient_2_std(in_file)
 
