@@ -1,9 +1,9 @@
 
 from preprocessing.util import mr_convert_to_nii, pet_convert_to_nii, registration, brain_segmentation, crop_to_mask, n4_bias_field_correction,\
-    mr_tumor_segmentation, pet_tumor_segmentation, get_brain_mask_no_tumor, standardization
+    mr_tumor_segmentation, pet_tumor_segmentation, get_brain_mask_no_tumor, standardization, reorient_2_std
 import shutil
 from preprocessing import settings
-
+import os
 
 def run_preprocessing(pid, queue, configurer):
 # def run_preprocessing(pid, queue):
@@ -28,37 +28,47 @@ def run_preprocessing(pid, queue, configurer):
 
     #%% 1) Convert to Nifti
     # MRI
-    sequences = ['t1_native', 't1_km', 't2', 'flair']
+    # sequences = ['t1_native', 't1_km', 't2', 'flair']
+    # for sequence in sequences:
+    #     dicom_dir = settings.raw_path.joinpath(settings.project, pid, sequence)
+    #     out_dir = settings.intermediate_path.joinpath(settings.project, pid)
+    #     out_file = f'{sequence}'
+    #
+    #     if not out_dir.is_dir():
+    #         out_dir.mkdir(parents=True)
+    #
+    #     print(f'PID: {pid}. convert {sequence} to nifti')
+    #
+    #     mr_convert_to_nii(dicom_dir, out_dir, out_file)
+    #
+    #     try:
+    #         file = [x for x in out_dir.glob(f'{sequence}*')][0]
+    #     except IndexError:
+    #         print(f'{pid}, {sequence} | Nifti file not generated')
+    #         continue
+    #     file.rename(out_dir.joinpath(f'{sequence}.nii.gz'))
+    #
+    #     print(f'PID: {pid}. convert {sequence} to nifti completed')
+    #
+    # # PET
+    # input_file = [x for x in settings.raw_path.joinpath(settings.project, pid, 'pet').glob('*.v')][0]
+    # out_dir = settings.intermediate_path.joinpath(settings.project, pid)
+    #
+    # pet_convert_to_nii(out_dir, input_file)
+    # out_file = [x for x in out_dir.glob('*.nii')][0]
+    # out_file.rename(out_file.parent.joinpath('pet.nii'))
+    # out_file = out_file.parent.joinpath('pet.nii')
+    # cmd = f'gzip {out_file}'
+    # os.system(cmd)
+
+    # Reorient to STD Space
+    sequences = ['t1_native', 't1_km', 't2', 'flair', 'pet']
     for sequence in sequences:
-        dicom_dir = settings.raw_path.joinpath(settings.project, pid, sequence)
-        out_dir = settings.intermediate_path.joinpath(settings.project, pid)
-        out_file = f'{sequence}'
+        in_file = settings.intermediate_path.joinpath(settings.project, pid, f'{sequence}.nii.gz')
+        out_file = settings.intermediate_path.joinpath(settings.project, pid, f'{sequence}_2std.nii.gz')
+        reorient_2_std(in_file, out_file)
 
-        if not out_dir.is_dir():
-            out_dir.mkdir(parents=True)
-
-        print(f'PID: {pid}. convert {sequence} to nifti')
-
-        mr_convert_to_nii(dicom_dir, out_dir, out_file)
-
-        try:
-            file = [x for x in out_dir.glob(f'{sequence}*')][0]
-        except IndexError:
-            print(f'{pid}, {sequence} | Nifti file not generated')
-            continue
-        file.rename(out_dir.joinpath(f'{sequence}.nii.gz'))
-
-        print(f'PID: {pid}. convert {sequence} to nifti completed')
-
-    # PET
-    input_file = [x for x in settings.raw_path.joinpath(settings.project, pid, 'pet').glob('*.v')][0]
-    out_dir = settings.intermediate_path.joinpath(settings.project, pid)
-
-    pet_convert_to_nii(out_dir, input_file)
-
-
-
-    # #%% 2) Registration
+# #%% 2) Registration
     # sequences = ['t1_km', 't2', 'flair']
     #
     # for sequence in sequences:
