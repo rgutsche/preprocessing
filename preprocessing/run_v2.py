@@ -233,9 +233,13 @@ def run_preprocessing(pid, queue, configurer):
 #     print(f'PID: {pid}. MR tumor segmentation done')
 
 #%% PET Segmentation
+    temp_dir = settings.intermediate_path.joinpath(settings.project, pid, 'temp')
+    if not temp_dir.is_dir():
+        temp_dir.mkdir(parents=True)
     in_file = str(settings.intermediate_path.joinpath(settings.project, pid, f'{pid}_0004.nii.gz'))
-    out_file = str(settings.intermediate_path.joinpath(settings.project, pid, f'pet_segmentation.nii.gz'))
-    pet_tumor_segmentation(in_file, out_file)
+    shutil.move(str(in_file), str(temp_dir))
+    # out_file = str(settings.intermediate_path.joinpath(settings.project, pid, f'pet_segmentation.nii.gz'))
+    pet_tumor_segmentation(temp_dir, temp_dir)
 
 #%%
 # #%% 5) N4BiasFieldCorrection
