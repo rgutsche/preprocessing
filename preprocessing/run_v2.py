@@ -4,6 +4,7 @@ from preprocessing.util import mr_convert_to_nii, pet_convert_to_nii, registrati
 import shutil
 from preprocessing import settings
 import os
+import SimpleITK as sitk
 
 def run_preprocessing(pid, queue, configurer):
 # def run_preprocessing(pid, queue):
@@ -27,66 +28,50 @@ def run_preprocessing(pid, queue, configurer):
     configurer(queue)
 
     #%% 1) Convert to Nifti
-    # # MRI
-    # sequences = ['t1_native', 't1_km', 't2', 'flair']
-    # for sequence in sequences:
-    #     dicom_dir = settings.raw_path.joinpath(settings.project, pid, sequence)
-    #     out_dir = settings.intermediate_path.joinpath(settings.project, pid)
-    #     out_file = f'{sequence}'
-    #
-    #     if not out_dir.is_dir():
-    #         out_dir.mkdir(parents=True)
-    #
-    #     print(f'PID: {pid}. convert {sequence} to nifti')
-    #
-    #     mr_convert_to_nii(dicom_dir, out_dir, out_file)
-    #
-    #     try:
-    #         file = [x for x in out_dir.glob(f'{sequence}*')][0]
-    #     except IndexError:
-    #         print(f'{pid}, {sequence} | Nifti file not generated')
-    #         continue
-    #     file.rename(out_dir.joinpath(f'{sequence}.nii.gz'))
-    #
-    #     print(f'PID: {pid}. convert {sequence} to nifti completed')
-    #
-    # # PET
-    # input_file = [x for x in settings.raw_path.joinpath(settings.project, pid, 'pet').glob('*.v')][0]
-    # out_dir = settings.intermediate_path.joinpath(settings.project, pid)
-    #
-    # pet_convert_to_nii(out_dir, input_file)
-    #
-    # out_file = [x for x in out_dir.glob('*.nii')][0]
-    # out_file.rename(out_file.parent.joinpath('pet.nii'))
-    # out_file = out_file.parent.joinpath('pet.nii')
-    # cmd = f'gzip {out_file}'
-    # os.system(cmd)
+    # MRI
+    sequences = ['t1_native', 't1_km', 't2', 'flair']
+    for sequence in sequences:
+        dicom_dir = settings.raw_path.joinpath(settings.project, pid, sequence)
+        out_dir = settings.intermediate_path.joinpath(settings.project, pid)
+        out_file = f'{sequence}'
 
+        if not out_dir.is_dir():
+            out_dir.mkdir(parents=True)
+
+        print(f'PID: {pid}. convert {sequence} to nifti')
+
+        mr_convert_to_nii(dicom_dir, out_dir, out_file)
+
+        try:
+            file = [x for x in out_dir.glob(f'{sequence}*')][0]
+        except IndexError:
+            print(f'{pid}, {sequence} | Nifti file not generated')
+            continue
+        file.rename(out_dir.joinpath(f'{sequence}.nii.gz'))
+
+        print(f'PID: {pid}. convert {sequence} to nifti completed')
+
+    # PET
+    input_file = [x for x in settings.raw_path.joinpath(settings.project, pid, 'pet').glob('*.v')][0]
+    out_dir = settings.intermediate_path.joinpath(settings.project, pid)
+
+    pet_convert_to_nii(out_dir, input_file)
+
+    out_file = [x for x in out_dir.glob('*.nii')][0]
+    out_file.rename(out_file.parent.joinpath('pet.nii'))
+    out_file = out_file.parent.joinpath('pet.nii')
+    cmd = f'gzip {out_file}'
+    os.system(cmd)
+    cmd = f'fslswapdim {out_file} x y -z {out_file}'
+    os.system(cmd)
+
+    origin = sitk.ReadImage(settings.intermediate_path.joinpath(settings.project, pid, 't1_native.nii.gz')).GetOrigin()
     sequences = ['t1_km', 't2', 'flair', 'pet']
     for sequence in sequences:
-        print(f'PID: {pid}. Reorientation for: {sequence}')
         in_file = settings.intermediate_path.joinpath(settings.project, pid, f'{sequence}.nii.gz')
-
-        # Clear the sform/qform affines
-        cmd = f'fslorient -deleteorient {in_file}'
-        os.system(cmd)
-
-        # Rotate the data array into RAS
-        # orientation (exact command depends
-        # on original data orientation
-        cmd = f'fslswapdim imagename a b c {in_file}'
-        os.system(cmd)
-
-        # Reset the qform. We can use an identity
-        # matrix, as the scaling parameters will be
-        # overridden by the image pixdims
-        cmd = f'fslorient -setqform 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 {in_file}'
-        os.system(cmd)
-
-        # Reset the qform code
-        cmd = f'fslorient -setqformcode 1 {in_file}'
-        os.system(cmd)
-
+        sitk_img = sitk.ReadImage(in_file)
+        sitk_img.SetOrigin(origin)
+        sitk.WriteImage(sitk_img, in_file)
 
     ### PROBLEM - ORIENTATION PET ###
     # cmd = f'fslswapdim {out_file} x y -z {out_file}'
