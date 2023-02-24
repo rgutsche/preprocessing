@@ -27,216 +27,215 @@ def run_preprocessing(pid, queue, configurer):
 
     configurer(queue)
 
-    #%% 1) Convert to Nifti
-    # MRI
-    sequences = ['t1_native', 't1_km', 't2', 'flair']
-    for sequence in sequences:
-        dicom_dir = settings.raw_path.joinpath(settings.project, pid, sequence)
-        out_dir = settings.intermediate_path.joinpath(settings.project, pid)
-        out_file = f'{sequence}'
-
-        if not out_dir.is_dir():
-            out_dir.mkdir(parents=True)
-
-        print(f'PID: {pid}. convert {sequence} to nifti')
-
-        mr_convert_to_nii(dicom_dir, out_dir, out_file)
-
-        try:
-            file = [x for x in out_dir.glob(f'{sequence}*')][0]
-        except IndexError:
-            print(f'{pid}, {sequence} | Nifti file not generated')
-            continue
-        file.rename(out_dir.joinpath(f'{sequence}.nii.gz'))
-
-        print(f'PID: {pid}. convert {sequence} to nifti completed')
-
-    # PET
-    input_file = [x for x in settings.raw_path.joinpath(settings.project, pid, 'pet').glob('*.v')][0]
-    out_dir = settings.intermediate_path.joinpath(settings.project, pid)
-
-    pet_convert_to_nii(out_dir, input_file)
-
-    # GZIP
-    out_file = [x for x in out_dir.glob('*.nii')][0]
-    out_file.rename(out_file.parent.joinpath('pet.nii'))
-    out_file = out_file.parent.joinpath('pet.nii')
-    cmd = f'gzip {out_file}'
-    os.system(cmd)
-
-    # Origin
-    reference = nib.load(settings.intermediate_path.joinpath(settings.project, pid, 't1_native.nii.gz'))
-    image = nib.load(settings.intermediate_path.joinpath(settings.project, pid, 'pet.nii.gz'))
-    array = image.get_fdata()
-    if len(array.shape) == 4:
-        array = array[..., 0]
-    nifti = nib.Nifti1Image(array, reference.affine)
-    nib.save(nifti, settings.intermediate_path.joinpath(settings.project, pid, 'pet.nii.gz'))
-
-    # Orientation (R und L + A und P müssen getauscht werden)
-    # pet_file_in = settings.intermediate_path.joinpath(settings.project, pid, 'pet.nii.gz')
-    # pet_file_out = settings.intermediate_path.joinpath(settings.project, pid, 'pet_v2.nii.gz')
-    #
-    # cmd = f'fslswapdim {pet_file_in} x y -z {pet_file_out}'
-    # os.system(cmd)
-
-#%% ### VERSUCHE ###
-# import matplotlib.pyplot as plt
+#     #%% 1) Convert to Nifti
+#     # MRI
+#     sequences = ['t1_native', 't1_km', 't2', 'flair']
+#     for sequence in sequences:
+#         dicom_dir = settings.raw_path.joinpath(settings.project, pid, sequence)
+#         out_dir = settings.intermediate_path.joinpath(settings.project, pid)
+#         out_file = f'{sequence}'
 #
-# # xform = np.eye(4)
-# # x, y, z
+#         if not out_dir.is_dir():
+#             out_dir.mkdir(parents=True)
 #
-# nifti = nib.Nifti1Image(array, reference.affine)
-# # nifti = nib.funcs.as_closest_canonical(nifti)
+#         print(f'PID: {pid}. convert {sequence} to nifti')
 #
-# nib.save(nifti, intermediate_path.joinpath('test.nii.gz'))
+#         mr_convert_to_nii(dicom_dir, out_dir, out_file)
+#
+#         try:
+#             file = [x for x in out_dir.glob(f'{sequence}*')][0]
+#         except IndexError:
+#             print(f'{pid}, {sequence} | Nifti file not generated')
+#             continue
+#         file.rename(out_dir.joinpath(f'{sequence}.nii.gz'))
+#
+#         print(f'PID: {pid}. convert {sequence} to nifti completed')
+#
+#     # PET
+#     input_file = [x for x in settings.raw_path.joinpath(settings.project, pid, 'pet').glob('*.v')][0]
+#     out_dir = settings.intermediate_path.joinpath(settings.project, pid)
+#
+#     pet_convert_to_nii(out_dir, input_file)
+#
+#     # GZIP
+#     out_file = [x for x in out_dir.glob('*.nii')][0]
+#     out_file.rename(out_file.parent.joinpath('pet.nii'))
+#     out_file = out_file.parent.joinpath('pet.nii')
+#     cmd = f'gzip {out_file}'
+#     os.system(cmd)
+#
+#     # Origin
+#     reference = nib.load(settings.intermediate_path.joinpath(settings.project, pid, 't1_native.nii.gz'))
+#     image = nib.load(settings.intermediate_path.joinpath(settings.project, pid, 'pet.nii.gz'))
+#     array = image.get_fdata()
+#     if len(array.shape) == 4:
+#         array = array[..., 0]
+#     nifti = nib.Nifti1Image(array, reference.affine)
+#     nib.save(nifti, settings.intermediate_path.joinpath(settings.project, pid, 'pet.nii.gz'))
+#
+#     # Orientation (R und L + A und P müssen getauscht werden)
+#     # pet_file_in = settings.intermediate_path.joinpath(settings.project, pid, 'pet.nii.gz')
+#     # pet_file_out = settings.intermediate_path.joinpath(settings.project, pid, 'pet_v2.nii.gz')
+#     #
+#     # cmd = f'fslswapdim {pet_file_in} x y -z {pet_file_out}'
+#     # os.system(cmd)
+#
+# #%% ### VERSUCHE ###
+# # import matplotlib.pyplot as plt
+# #
+# # # xform = np.eye(4)
+# # # x, y, z
+# #
+# # nifti = nib.Nifti1Image(array, reference.affine)
+# # # nifti = nib.funcs.as_closest_canonical(nifti)
+# #
+# # nib.save(nifti, intermediate_path.joinpath('test.nii.gz'))
+# #
+# #
+# #     # cmd = f'fslswapdim {out_file} x y -z {out_file}'
+# #     # os.system(cmd)
+# #
+# # # import torchio as tio
+# # # import SimpleITK as sitk
+# # # from pathlib import Path
+# # # import numpy as np
+# # # import nibabel as nib
+# #
+# # intermediate_path = Path('/Volumes/btu-ai/data/intermediate/TEMP_V1/FE2BP896F-BI')
+# #
+# # sitk_img_t1 = sitk.ReadImage(intermediate_path.joinpath('t1_native.nii.gz'))
+# # sitk_img_pet = sitk.ReadImage(intermediate_path.joinpath('pet.nii.gz'))
+# #
+# # # direction = np.array(sitk_img_t1.GetDirection())
+# # # origin = sitk_img_t1.GetOrigin()
+# # # image_pixel_type = sitk_img_t1.GetPixelID()
+# # # tio.Image()
+# #
+# # # array = sitk.GetArrayFromImage(sitk_img_t1)
+# # reference = nib.load(intermediate_path.joinpath('t1_native.nii.gz'))
+# # # reference = nib.funcs.as_closest_canonical(reference)
+# # image = nib.load(intermediate_path.joinpath('pet.nii.gz'))
+# # array = image.get_fdata()
+# # if len(array.shape) == 4:
+# #     array = array[..., 0]
+# # import numpy as np
+# # # x = np.transpose(array, (1, 0, 2))
+# # # x = np.rot90(array)
+# # x = array[256:0, 256:0, :]
+# # nifti = nib.Nifti1Image(x, reference.affine)
+# #
+# # nib.save(nifti, intermediate_path.joinpath('test_5.nii.gz'))
+# # import matplotlib.pyplot as plt
+# #
+# # # xform = np.eye(4)
+# # # x, y, z
+# #
+# # nifti = nib.Nifti1Image(array, reference.affine)
+# # # nifti = nib.funcs.as_closest_canonical(nifti)
+# #
+# # nib.save(nifti, intermediate_path.joinpath('test.nii.gz'))
+#     # origin = sitk.ReadImage(str(settings.intermediate_path.joinpath(settings.project, pid, 't1_native.nii.gz'))).GetOrigin()
+#     # direction = sitk.ReadImage(str(settings.intermediate_path.joinpath(settings.project, pid, 't1_native.nii.gz'))).GetDirection()
 #
 #
+#     # origin = sitk.ReadImage(str(settings.intermediate_path.joinpath(settings.project, pid, 't1_native.nii.gz'))).GetOrigin()
+#     # direction = sitk.ReadImage(str(settings.intermediate_path.joinpath(settings.project, pid, 't1_native.nii.gz'))).GetDirection()
+#     #
+#     # sequences = ['t1_km', 't2', 'flair', 'pet']
+#     # for sequence in sequences:
+#     #     in_file = settings.intermediate_path.joinpath(settings.project, pid, f'{sequence}.nii.gz')
+#     #     sitk_img = sitk.ReadImage(str(in_file))
+#     #     sitk_img.SetOrigin(origin)
+#     #     sitk_img.SetDirection(direction)
+#     #     sitk.WriteImage(sitk_img, str(in_file.parent.joinpath(f'{sequence}_origin_t1_native.nii.gz')))
+#
+#     # x = sitk.ReadImage(str('/Volumes/btu-ai/data/intermediate/TEMP_V1/FE2BP896F-BI/t1_native.nii.gz'))
+#     # y = sitk.ReadImage(str('/Volumes/btu-ai/data/intermediate/TEMP_V1/FE2BP896F-BI/pet.nii.gz'))
+#     # origin = x.GetOrigin()
+#     # direction = x.GetDirection()
+#     # y.SetOrigin(origin)
+#     # y.SetDirection(direction)
+#     # sitk.WriteImage(y, str('/Volumes/btu-ai/data/intermediate/TEMP_V1/FE2BP896F-BI/test.nii.gz'))
+#
+# ### PROBLEM - ORIENTATION PET ###
 #     # cmd = f'fslswapdim {out_file} x y -z {out_file}'
 #     # os.system(cmd)
 #
-# # import torchio as tio
-# # import SimpleITK as sitk
-# # from pathlib import Path
-# # import numpy as np
-# # import nibabel as nib
+#     # # Reorient to STD Space  (### Läuft nicht ###)
+#     # # sequences = ['t1_native', 't1_km', 't2', 'flair', 'pet']
+#     # # for sequence in sequences:
+#     # #     in_file = settings.intermediate_path.joinpath(settings.project, pid, f'{sequence}.nii.gz')
+#     # #     out_file = settings.intermediate_path.joinpath(settings.project, pid, f'{sequence}_reorient.nii.gz')
+#     # #     reorient_2_std(in_file, out_file)
 #
-# intermediate_path = Path('/Volumes/btu-ai/data/intermediate/TEMP_V1/FE2BP896F-BI')
+#     #%% 2) Registration
+#     sequences = ['t1_km', 't2', 'flair', 'pet']
 #
-# sitk_img_t1 = sitk.ReadImage(intermediate_path.joinpath('t1_native.nii.gz'))
-# sitk_img_pet = sitk.ReadImage(intermediate_path.joinpath('pet.nii.gz'))
+#     for sequence in sequences:
+#         print(f'PID: {pid}. Registration for: {sequence}')
 #
-# # direction = np.array(sitk_img_t1.GetDirection())
-# # origin = sitk_img_t1.GetOrigin()
-# # image_pixel_type = sitk_img_t1.GetPixelID()
-# # tio.Image()
+#         in_file = settings.intermediate_path.joinpath(settings.project, pid, f'{sequence}.nii.gz')
+#         ref_file = settings.intermediate_path.joinpath(settings.project, pid, f't1_native.nii.gz')
+#         out_file = settings.intermediate_path.joinpath(settings.project, pid, f'{sequence}_co.nii.gz')
+#         registration(in_file, ref_file, out_file)
 #
-# # array = sitk.GetArrayFromImage(sitk_img_t1)
-# reference = nib.load(intermediate_path.joinpath('t1_native.nii.gz'))
-# # reference = nib.funcs.as_closest_canonical(reference)
-# image = nib.load(intermediate_path.joinpath('pet.nii.gz'))
-# array = image.get_fdata()
-# if len(array.shape) == 4:
-#     array = array[..., 0]
-# import numpy as np
-# # x = np.transpose(array, (1, 0, 2))
-# # x = np.rot90(array)
-# x = array[256:0, 256:0, :]
-# nifti = nib.Nifti1Image(x, reference.affine)
+#     print(f'PID: {pid}. Registration for: {sequence} done')
 #
-# nib.save(nifti, intermediate_path.joinpath('test_5.nii.gz'))
-# import matplotlib.pyplot as plt
+#     #%% 3) Brain Segmentation
+#     print(f'PID: {pid}. Brain segmentation')
 #
-# # xform = np.eye(4)
-# # x, y, z
+#     in_file = str(settings.intermediate_path.joinpath(settings.project, pid, f't1_native.nii.gz'))
+#     out_file = settings.intermediate_path.joinpath(settings.project, pid, f't1_native_hdbet.nii.gz')
+#     brain_segmentation(in_file, str(out_file), device=0)
+#     out_file.rename(out_file.parent.joinpath(f'{pid}_0000.nii.gz'))
 #
-# nifti = nib.Nifti1Image(array, reference.affine)
-# # nifti = nib.funcs.as_closest_canonical(nifti)
+#     out_file.parent.joinpath(f't1_native_hdbet_mask.nii.gz').rename(out_file.parent.joinpath(f'brain_segmentation.nii.gz'))
+#     print(f'PID: {pid}. Brain segmentation and renaming done.')
 #
-# nib.save(nifti, intermediate_path.joinpath('test.nii.gz'))
-    # origin = sitk.ReadImage(str(settings.intermediate_path.joinpath(settings.project, pid, 't1_native.nii.gz'))).GetOrigin()
-    # direction = sitk.ReadImage(str(settings.intermediate_path.joinpath(settings.project, pid, 't1_native.nii.gz'))).GetDirection()
-
-
-    # origin = sitk.ReadImage(str(settings.intermediate_path.joinpath(settings.project, pid, 't1_native.nii.gz'))).GetOrigin()
-    # direction = sitk.ReadImage(str(settings.intermediate_path.joinpath(settings.project, pid, 't1_native.nii.gz'))).GetDirection()
-    #
-    # sequences = ['t1_km', 't2', 'flair', 'pet']
-    # for sequence in sequences:
-    #     in_file = settings.intermediate_path.joinpath(settings.project, pid, f'{sequence}.nii.gz')
-    #     sitk_img = sitk.ReadImage(str(in_file))
-    #     sitk_img.SetOrigin(origin)
-    #     sitk_img.SetDirection(direction)
-    #     sitk.WriteImage(sitk_img, str(in_file.parent.joinpath(f'{sequence}_origin_t1_native.nii.gz')))
-
-    # x = sitk.ReadImage(str('/Volumes/btu-ai/data/intermediate/TEMP_V1/FE2BP896F-BI/t1_native.nii.gz'))
-    # y = sitk.ReadImage(str('/Volumes/btu-ai/data/intermediate/TEMP_V1/FE2BP896F-BI/pet.nii.gz'))
-    # origin = x.GetOrigin()
-    # direction = x.GetDirection()
-    # y.SetOrigin(origin)
-    # y.SetDirection(direction)
-    # sitk.WriteImage(y, str('/Volumes/btu-ai/data/intermediate/TEMP_V1/FE2BP896F-BI/test.nii.gz'))
-
-### PROBLEM - ORIENTATION PET ###
-    # cmd = f'fslswapdim {out_file} x y -z {out_file}'
-    # os.system(cmd)
-
-    # # Reorient to STD Space  (### Läuft nicht ###)
-    # # sequences = ['t1_native', 't1_km', 't2', 'flair', 'pet']
-    # # for sequence in sequences:
-    # #     in_file = settings.intermediate_path.joinpath(settings.project, pid, f'{sequence}.nii.gz')
-    # #     out_file = settings.intermediate_path.joinpath(settings.project, pid, f'{sequence}_reorient.nii.gz')
-    # #     reorient_2_std(in_file, out_file)
-
-    #%% 2) Registration
-    sequences = ['t1_km', 't2', 'flair', 'pet']
-
-    for sequence in sequences:
-        print(f'PID: {pid}. Registration for: {sequence}')
-
-        in_file = settings.intermediate_path.joinpath(settings.project, pid, f'{sequence}.nii.gz')
-        ref_file = settings.intermediate_path.joinpath(settings.project, pid, f't1_native.nii.gz')
-        out_file = settings.intermediate_path.joinpath(settings.project, pid, f'{sequence}_co.nii.gz')
-        registration(in_file, ref_file, out_file)
-
-    print(f'PID: {pid}. Registration for: {sequence} done')
-
-    #%% 3) Brain Segmentation
-    print(f'PID: {pid}. Brain segmentation')
-
-    in_file = str(settings.intermediate_path.joinpath(settings.project, pid, f't1_native.nii.gz'))
-    out_file = settings.intermediate_path.joinpath(settings.project, pid, f't1_native_hdbet.nii.gz')
-    brain_segmentation(in_file, str(out_file), device=0)
-    out_file.rename(out_file.parent.joinpath(f'{pid}_0000.nii.gz'))
-
-    out_file.parent.joinpath(f't1_native_hdbet_mask.nii.gz').rename(out_file.parent.joinpath(f'brain_segmentation.nii.gz'))
-    print(f'PID: {pid}. Brain segmentation and renaming done.')
-
-
-    #%% 4) Multiply brain segmentation with images
-    print(f'PID: {pid}. Apply brain segmentation mask')
-
-    out_dir = settings.processed_path.joinpath(settings.project, pid)
-    if not out_dir.is_dir():
-        out_dir.mkdir(parents=True)
-
-    for i, sequence in enumerate(sequences):
-        mask_file = settings.intermediate_path.joinpath(settings.project, pid, f'brain_segmentation.nii.gz')
-        in_file = settings.intermediate_path.joinpath(settings.project, pid, f'{sequence}_co.nii.gz')
-        out_file = settings.intermediate_path.joinpath(settings.project, pid, f'{sequence}_hdbet.nii.gz')
-        crop_to_mask(in_file, mask_file, out_file)
-        out_file.rename(out_file.parent.joinpath(f'{pid}_000{i + 1}.nii.gz'))
-    print(f'PID: {pid}. Application brain segmentation mask done')
-
-    #%% 5) Move MRI files to processed directory
-    for i in range(4):
-        shutil.move(str(settings.intermediate_path.joinpath(settings.project, pid, f'{pid}_000{i}.nii.gz')), str(out_dir))
-
-    #%% 6) HD-GLIO tumor segmentation
-
-    print(f'PID: {pid}. MR tumor segmentation')
-
-    # in_dir_path = settings.processed_path.joinpath(settings.project, pid)
-    # if not out_dir.is_dir():
-    #     out_dir.mkdir(parents=True)
-
-    mr_tumor_segmentation(str(out_dir), str(out_dir))
-
-    out_dir.joinpath(f'{pid}.nii.gz').rename(out_dir.joinpath(f'{pid}_mr_segmentation.nii.gz'))
-
-    shutil.move(str(
-        settings.intermediate_path.joinpath(settings.project, pid, f'brain_segmentation.nii.gz')),
-                out_dir)
-
-    out_dir.joinpath(f'brain_segmentation.nii.gz').rename(out_dir.joinpath(f'{pid}_brain_segmentation.nii.gz'))
-
-    to_remove = ['plans.pkl', 'postprocessing.json']
-    for remove in to_remove:
-        out_dir.joinpath(remove).unlink()
-
-    print(f'PID: {pid}. MR tumor segmentation done')
+#
+#     #%% 4) Multiply brain segmentation with images
+#     print(f'PID: {pid}. Apply brain segmentation mask')
+#
+#     out_dir = settings.processed_path.joinpath(settings.project, pid)
+#     if not out_dir.is_dir():
+#         out_dir.mkdir(parents=True)
+#
+#     for i, sequence in enumerate(sequences):
+#         mask_file = settings.intermediate_path.joinpath(settings.project, pid, f'brain_segmentation.nii.gz')
+#         in_file = settings.intermediate_path.joinpath(settings.project, pid, f'{sequence}_co.nii.gz')
+#         out_file = settings.intermediate_path.joinpath(settings.project, pid, f'{sequence}_hdbet.nii.gz')
+#         crop_to_mask(in_file, mask_file, out_file)
+#         out_file.rename(out_file.parent.joinpath(f'{pid}_000{i + 1}.nii.gz'))
+#     print(f'PID: {pid}. Application brain segmentation mask done')
+#
+#     #%% 5) Move MRI files to processed directory
+#     for i in range(4):
+#         shutil.move(str(settings.intermediate_path.joinpath(settings.project, pid, f'{pid}_000{i}.nii.gz')), str(out_dir))
+#
+#     #%% 6) HD-GLIO tumor segmentation
+#
+#     print(f'PID: {pid}. MR tumor segmentation')
+#
+#     mr_tumor_segmentation(str(out_dir), str(out_dir))
+#
+#     out_dir.joinpath(f'{pid}.nii.gz').rename(out_dir.joinpath(f'{pid}_mr_segmentation.nii.gz'))
+#
+#     shutil.move(str(
+#         settings.intermediate_path.joinpath(settings.project, pid, f'brain_segmentation.nii.gz')),
+#                 out_dir)
+#
+#     out_dir.joinpath(f'brain_segmentation.nii.gz').rename(out_dir.joinpath(f'{pid}_brain_segmentation.nii.gz'))
+#
+#     to_remove = ['plans.pkl', 'postprocessing.json']
+#     for remove in to_remove:
+#         out_dir.joinpath(remove).unlink()
+#
+#     print(f'PID: {pid}. MR tumor segmentation done')
 
 #%% PET Segmentation
+    in_file = str(settings.intermediate_path.joinpath(settings.project, pid, f'{pid}_0004.nii.gz'))
+    out_file = str(settings.intermediate_path.joinpath(settings.project, pid, f'pet_segmentation.nii.gz'))
+    pet_tumor_segmentation(in_file, out_file)
 
 #%%
 # #%% 5) N4BiasFieldCorrection
