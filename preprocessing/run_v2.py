@@ -72,8 +72,10 @@ def run_preprocessing(pid, queue, configurer):
     nifti = nib.Nifti1Image(array, reference.affine)
     nib.save(nifti, settings.intermediate_path.joinpath(settings.project, pid, 'pet.nii.gz'))
 
-    pet_file = settings.intermediate_path.joinpath(settings.project, pid, 'pet.nii.gz')
-    cmd = f'fslswapdim {pet_file} -x -y z {pet_file}'
+    pet_file_in = settings.intermediate_path.joinpath(settings.project, pid, 'pet.nii.gz')
+    pet_file_out = settings.intermediate_path.joinpath(settings.project, pid, 'pet_v2.nii.gz')
+
+    cmd = f'fslswapdim {pet_file_in} x y -z {pet_file_out}'
     os.system(cmd)
 
 #%% ### VERSUCHE ###
