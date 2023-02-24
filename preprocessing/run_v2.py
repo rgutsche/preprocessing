@@ -73,7 +73,7 @@ def run_preprocessing(pid, queue, configurer):
     nib.save(nifti, settings.intermediate_path.joinpath(settings.project, pid, 'pet.nii.gz'))
 
     pet_file = settings.intermediate_path.joinpath(settings.project, pid, 'pet.nii.gz')
-    cmd = f'fslswapdim {pet_file} x y -z {pet_file}'
+    cmd = f'fslswapdim {pet_file} -x -y z {pet_file}'
     os.system(cmd)
 
 #%% ### VERSUCHE ###
