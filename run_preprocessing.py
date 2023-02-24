@@ -10,7 +10,7 @@ from preprocessing.helpers import worker_configurer
 
 settings.init(project_name='TEMP_V1')
 
-number_of_processes = 1
+number_of_processes = 4
 
 pids = sorted([x.name for x in settings.raw_path.joinpath(settings.project).glob('*') if not x.name.startswith('.')])
 
