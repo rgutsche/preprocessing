@@ -4,7 +4,8 @@ from preprocessing.util import mr_convert_to_nii, pet_convert_to_nii, registrati
 import shutil
 from preprocessing import settings
 import os
-import SimpleITK as sitk
+# import SimpleITK as sitk
+import nibabel as nib
 
 def run_preprocessing(pid, queue, configurer):
 # def run_preprocessing(pid, queue):
@@ -62,14 +63,73 @@ def run_preprocessing(pid, queue, configurer):
     out_file = out_file.parent.joinpath('pet.nii')
     cmd = f'gzip {out_file}'
     os.system(cmd)
-    # cmd = f'fslswapdim {out_file} x y -z {out_file}'
-    # os.system(cmd)
 
-# import torchio as tio
-# intermediate_path = Path('/data/btu-ai/data/intermediate')
-# tio.Image()
+    reference = nib.load(settings.intermediate_path.joinpath(settings.project, pid, 't1_native.nii.gz'))
+    image = nib.load(settings.intermediate_path.joinpath(settings.project, pid, 'pet.nii.gz'))
+    array = image.get_fdata()
+    if len(array.shape) == 4:
+        array = array[..., 0]
+    nifti = nib.Nifti1Image(array, reference.affine)
+    nib.save(nifti, settings.intermediate_path.joinpath(settings.project, pid, 'pet.nii.gz'))
 
+    pet_file = settings.intermediate_path.joinpath(settings.project, pid, 'pet.nii.gz')
+    cmd = f'fslswapdim {pet_file} x y -z {pet_file}'
+    os.system(cmd)
 
+#%% ### VERSUCHE ###
+# import matplotlib.pyplot as plt
+#
+# # xform = np.eye(4)
+# # x, y, z
+#
+# nifti = nib.Nifti1Image(array, reference.affine)
+# # nifti = nib.funcs.as_closest_canonical(nifti)
+#
+# nib.save(nifti, intermediate_path.joinpath('test.nii.gz'))
+#
+#
+#     # cmd = f'fslswapdim {out_file} x y -z {out_file}'
+#     # os.system(cmd)
+#
+# # import torchio as tio
+# # import SimpleITK as sitk
+# # from pathlib import Path
+# # import numpy as np
+# # import nibabel as nib
+#
+# intermediate_path = Path('/Volumes/btu-ai/data/intermediate/TEMP_V1/FE2BP896F-BI')
+#
+# sitk_img_t1 = sitk.ReadImage(intermediate_path.joinpath('t1_native.nii.gz'))
+# sitk_img_pet = sitk.ReadImage(intermediate_path.joinpath('pet.nii.gz'))
+#
+# # direction = np.array(sitk_img_t1.GetDirection())
+# # origin = sitk_img_t1.GetOrigin()
+# # image_pixel_type = sitk_img_t1.GetPixelID()
+# # tio.Image()
+#
+# # array = sitk.GetArrayFromImage(sitk_img_t1)
+# reference = nib.load(intermediate_path.joinpath('t1_native.nii.gz'))
+# # reference = nib.funcs.as_closest_canonical(reference)
+# image = nib.load(intermediate_path.joinpath('pet.nii.gz'))
+# array = image.get_fdata()
+# if len(array.shape) == 4:
+#     array = array[..., 0]
+# import numpy as np
+# # x = np.transpose(array, (1, 0, 2))
+# # x = np.rot90(array)
+# x = array[256:0, 256:0, :]
+# nifti = nib.Nifti1Image(x, reference.affine)
+#
+# nib.save(nifti, intermediate_path.joinpath('test_5.nii.gz'))
+# import matplotlib.pyplot as plt
+#
+# # xform = np.eye(4)
+# # x, y, z
+#
+# nifti = nib.Nifti1Image(array, reference.affine)
+# # nifti = nib.funcs.as_closest_canonical(nifti)
+#
+# nib.save(nifti, intermediate_path.joinpath('test.nii.gz'))
     # origin = sitk.ReadImage(str(settings.intermediate_path.joinpath(settings.project, pid, 't1_native.nii.gz'))).GetOrigin()
     # direction = sitk.ReadImage(str(settings.intermediate_path.joinpath(settings.project, pid, 't1_native.nii.gz'))).GetDirection()
 
