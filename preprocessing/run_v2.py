@@ -69,7 +69,7 @@ def run_preprocessing(pid, queue, configurer):
     # #     out_file = settings.intermediate_path.joinpath(settings.project, pid, f'{sequence}_reorient.nii.gz')
     # #     reorient_2_std(in_file, out_file)
 
-# #%% 2) Registration
+    #%% 2) Registration
     sequences = ['t1_km', 't2', 'flair', 'pet']
 
     for sequence in sequences:
