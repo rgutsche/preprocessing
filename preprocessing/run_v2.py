@@ -27,40 +27,43 @@ def run_preprocessing(pid, queue, configurer):
     configurer(queue)
 
     #%% 1) Convert to Nifti
-    # # MRI
-    # sequences = ['t1_native', 't1_km', 't2', 'flair']
-    # for sequence in sequences:
-    #     dicom_dir = settings.raw_path.joinpath(settings.project, pid, sequence)
-    #     out_dir = settings.intermediate_path.joinpath(settings.project, pid)
-    #     out_file = f'{sequence}'
-    #
-    #     if not out_dir.is_dir():
-    #         out_dir.mkdir(parents=True)
-    #
-    #     print(f'PID: {pid}. convert {sequence} to nifti')
-    #
-    #     mr_convert_to_nii(dicom_dir, out_dir, out_file)
-    #
-    #     try:
-    #         file = [x for x in out_dir.glob(f'{sequence}*')][0]
-    #     except IndexError:
-    #         print(f'{pid}, {sequence} | Nifti file not generated')
-    #         continue
-    #     file.rename(out_dir.joinpath(f'{sequence}.nii.gz'))
-    #
-    #     print(f'PID: {pid}. convert {sequence} to nifti completed')
-    #
-    # # PET
-    # input_file = [x for x in settings.raw_path.joinpath(settings.project, pid, 'pet').glob('*.v')][0]
-    # out_dir = settings.intermediate_path.joinpath(settings.project, pid)
-    #
-    # pet_convert_to_nii(out_dir, input_file)
-    #
-    # out_file = [x for x in out_dir.glob('*.nii')][0]
-    # out_file.rename(out_file.parent.joinpath('pet.nii'))
-    # out_file = out_file.parent.joinpath('pet.nii')
-    # cmd = f'gzip {out_file}'
-    # os.system(cmd)
+    # MRI
+    sequences = ['t1_native', 't1_km', 't2', 'flair']
+    for sequence in sequences:
+        dicom_dir = settings.raw_path.joinpath(settings.project, pid, sequence)
+        out_dir = settings.intermediate_path.joinpath(settings.project, pid)
+        out_file = f'{sequence}'
+
+        if not out_dir.is_dir():
+            out_dir.mkdir(parents=True)
+
+        print(f'PID: {pid}. convert {sequence} to nifti')
+
+        mr_convert_to_nii(dicom_dir, out_dir, out_file)
+
+        try:
+            file = [x for x in out_dir.glob(f'{sequence}*')][0]
+        except IndexError:
+            print(f'{pid}, {sequence} | Nifti file not generated')
+            continue
+        file.rename(out_dir.joinpath(f'{sequence}.nii.gz'))
+
+        print(f'PID: {pid}. convert {sequence} to nifti completed')
+
+    # PET
+    input_file = [x for x in settings.raw_path.joinpath(settings.project, pid, 'pet').glob('*.v')][0]
+    out_dir = settings.intermediate_path.joinpath(settings.project, pid)
+
+    pet_convert_to_nii(out_dir, input_file)
+
+    out_file = [x for x in out_dir.glob('*.nii')][0]
+    out_file.rename(out_file.parent.joinpath('pet.nii'))
+    out_file = out_file.parent.joinpath('pet.nii')
+    cmd = f'gzip {out_file}'
+    os.system(cmd)
+
+    cmd = f'fslswapdim {out_file} x y -z {out_file}'
+    os.system(cmd)
 
     # # Reorient to STD Space  (### Läuft nicht ###)
     # # sequences = ['t1_native', 't1_km', 't2', 'flair', 'pet']
@@ -69,21 +72,23 @@ def run_preprocessing(pid, queue, configurer):
     # #     out_file = settings.intermediate_path.joinpath(settings.project, pid, f'{sequence}_reorient.nii.gz')
     # #     reorient_2_std(in_file, out_file)
 
+
+
     #%% 2) Registration
-    sequences = ['t1_km', 't2', 'flair', 'pet']
-
-    for sequence in sequences:
-        # logger.warning(f'PID: {pid}. Registration for: {sequence}')
-        print(f'PID: {pid}. Registration for: {sequence}')
-
-        in_file = settings.intermediate_path.joinpath(settings.project, pid, f'{sequence}.nii.gz')
-        ref_file = settings.intermediate_path.joinpath(settings.project, pid, f't1_native.nii.gz')
-        out_file = settings.intermediate_path.joinpath(settings.project, pid, f'{sequence}_co.nii.gz')
-        registration(in_file, ref_file, out_file)
-
-    # logger.warning(f'PID: {pid}. Registration for: {sequence} done')
-
-    print(f'PID: {pid}. Registration for: {sequence} done')
+    # sequences = ['t1_km', 't2', 'flair', 'pet']
+    #
+    # for sequence in sequences:
+    #     # logger.warning(f'PID: {pid}. Registration for: {sequence}')
+    #     print(f'PID: {pid}. Registration for: {sequence}')
+    #
+    #     in_file = settings.intermediate_path.joinpath(settings.project, pid, f'{sequence}.nii.gz')
+    #     ref_file = settings.intermediate_path.joinpath(settings.project, pid, f't1_native.nii.gz')
+    #     out_file = settings.intermediate_path.joinpath(settings.project, pid, f'{sequence}_co.nii.gz')
+    #     registration(in_file, ref_file, out_file)
+    #
+    # # logger.warning(f'PID: {pid}. Registration for: {sequence} done')
+    #
+    # print(f'PID: {pid}. Registration for: {sequence} done')
 
     # #%% 3) Brain Segmentation
     # # logger.warning(f'PID: {pid}. Brain segmentation')
