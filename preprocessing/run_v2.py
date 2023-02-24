@@ -65,16 +65,25 @@ def run_preprocessing(pid, queue, configurer):
     # cmd = f'fslswapdim {out_file} x y -z {out_file}'
     # os.system(cmd)
 
-    origin = sitk.ReadImage(str(settings.intermediate_path.joinpath(settings.project, pid, 't1_native.nii.gz'))).GetOrigin()
-    direction = sitk.ReadImage(str(settings.intermediate_path.joinpath(settings.project, pid, 't1_native.nii.gz'))).GetDirection()
+# import torchio as tio
+# intermediate_path = Path('/data/btu-ai/data/intermediate')
+# tio.Image()
 
-    sequences = ['t1_km', 't2', 'flair', 'pet']
-    for sequence in sequences:
-        in_file = settings.intermediate_path.joinpath(settings.project, pid, f'{sequence}.nii.gz')
-        sitk_img = sitk.ReadImage(str(in_file))
-        sitk_img.SetOrigin(origin)
-        sitk_img.SetDirection(direction)
-        sitk.WriteImage(sitk_img, str(in_file.parent.joinpath(f'{sequence}_origin_t1_native.nii.gz')))
+
+    # origin = sitk.ReadImage(str(settings.intermediate_path.joinpath(settings.project, pid, 't1_native.nii.gz'))).GetOrigin()
+    # direction = sitk.ReadImage(str(settings.intermediate_path.joinpath(settings.project, pid, 't1_native.nii.gz'))).GetDirection()
+
+
+    # origin = sitk.ReadImage(str(settings.intermediate_path.joinpath(settings.project, pid, 't1_native.nii.gz'))).GetOrigin()
+    # direction = sitk.ReadImage(str(settings.intermediate_path.joinpath(settings.project, pid, 't1_native.nii.gz'))).GetDirection()
+    #
+    # sequences = ['t1_km', 't2', 'flair', 'pet']
+    # for sequence in sequences:
+    #     in_file = settings.intermediate_path.joinpath(settings.project, pid, f'{sequence}.nii.gz')
+    #     sitk_img = sitk.ReadImage(str(in_file))
+    #     sitk_img.SetOrigin(origin)
+    #     sitk_img.SetDirection(direction)
+    #     sitk.WriteImage(sitk_img, str(in_file.parent.joinpath(f'{sequence}_origin_t1_native.nii.gz')))
 
     # x = sitk.ReadImage(str('/Volumes/btu-ai/data/intermediate/TEMP_V1/FE2BP896F-BI/t1_native.nii.gz'))
     # y = sitk.ReadImage(str('/Volumes/btu-ai/data/intermediate/TEMP_V1/FE2BP896F-BI/pet.nii.gz'))
