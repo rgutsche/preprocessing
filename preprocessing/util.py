@@ -17,11 +17,13 @@ def pet_convert_to_nii(out_dir_path, input_file):
     os.system(cmd)
 
 def reorient_2_std(input_file, output_file):
+    cmd = f'fslreorient2std {input_file} {output_file}'
+    os.system(cmd)
 # def reorient_2_std(input_file):
-    reorient = fsl.Reorient2Std()
-    reorient.inputs.in_file = str(input_file)
-    reorient.inputs.out_file = str(output_file)
-    reorient.run()
+#     reorient = fsl.Reorient2Std()
+#     reorient.inputs.in_file = str(input_file)
+#     reorient.inputs.out_file = str(output_file)
+#     reorient.run()
 
 def mr_convert_to_nii(dicom_dir_path, out_dir_path, out_path):
     """
