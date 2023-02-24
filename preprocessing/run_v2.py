@@ -72,47 +72,42 @@ def run_preprocessing(pid, queue, configurer):
     # #     out_file = settings.intermediate_path.joinpath(settings.project, pid, f'{sequence}_reorient.nii.gz')
     # #     reorient_2_std(in_file, out_file)
 
-
-
     #%% 2) Registration
-    sequences = ['t1_km', 't2', 'flair', 'pet']
-
-    for sequence in sequences:
-        print(f'PID: {pid}. Registration for: {sequence}')
-
-        in_file = settings.intermediate_path.joinpath(settings.project, pid, f'{sequence}.nii.gz')
-        ref_file = settings.intermediate_path.joinpath(settings.project, pid, f't1_native.nii.gz')
-        out_file = settings.intermediate_path.joinpath(settings.project, pid, f'{sequence}_co.nii.gz')
-        registration(in_file, ref_file, out_file)
-
-    print(f'PID: {pid}. Registration for: {sequence} done')
-
-    # #%% 3) Brain Segmentation
-    # # logger.warning(f'PID: {pid}. Brain segmentation')
-    # print(f'PID: {pid}. Brain segmentation')
-    #
-    # in_file = str(settings.intermediate_path.joinpath(settings.project, pid, study, f't1_native.nii.gz'))
-    # out_file = settings.intermediate_path.joinpath(settings.project, pid, study, f't1_native_hdbet.nii.gz')
-    # brain_segmentation(in_file, str(out_file), device=0)
-    #
-    # out_file.parent.joinpath(f't1_native_hdbet_mask.nii.gz').rename(out_file.parent.joinpath(f'brain_segmentation.nii.gz'))
-    # # logger.warning(f'PID: {pid}. Brain segmentation and renaming done.')
-    # print(f'PID: {pid}. Brain segmentation and renaming done.')
-    #
-    #
-    # #%% 4) Multiply brain segmentation with images
-    # # logger.warning(f'PID: {pid}. Apply brain segmentation mask')
-    # print(f'PID: {pid}. Apply brain segmentation mask')
+    # sequences = ['t1_km', 't2', 'flair', 'pet']
     #
     # for sequence in sequences:
-    #     mask_file = settings.intermediate_path.joinpath(settings.project, pid, study, f'brain_segmentation.nii.gz')
-    #     in_file = settings.intermediate_path.joinpath(settings.project, pid, study, f'{sequence}_co.nii.gz')
-    #     out_file = settings.intermediate_path.joinpath(settings.project, pid, study, f'{sequence}_hdbet.nii.gz')
-    #     crop_to_mask(in_file, mask_file, out_file)
+    #     print(f'PID: {pid}. Registration for: {sequence}')
     #
-    # # logger.warning(f'PID: {pid}. Application brain segmentation mask done')
-    # print(f'PID: {pid}. Application brain segmentation mask done')
+    #     in_file = settings.intermediate_path.joinpath(settings.project, pid, f'{sequence}.nii.gz')
+    #     ref_file = settings.intermediate_path.joinpath(settings.project, pid, f't1_native.nii.gz')
+    #     out_file = settings.intermediate_path.joinpath(settings.project, pid, f'{sequence}_co.nii.gz')
+    #     registration(in_file, ref_file, out_file)
     #
+    # print(f'PID: {pid}. Registration for: {sequence} done')
+
+    #%% 3) Brain Segmentation
+    print(f'PID: {pid}. Brain segmentation')
+
+    in_file = str(settings.intermediate_path.joinpath(settings.project, pid, f't1_native.nii.gz'))
+    out_file = settings.intermediate_path.joinpath(settings.project, pid, f't1_native_hdbet.nii.gz')
+    brain_segmentation(in_file, str(out_file), device=0)
+
+    out_file.parent.joinpath(f't1_native_hdbet_mask.nii.gz').rename(out_file.parent.joinpath(f'brain_segmentation.nii.gz'))
+    print(f'PID: {pid}. Brain segmentation and renaming done.')
+
+
+    #%% 4) Multiply brain segmentation with images
+    print(f'PID: {pid}. Apply brain segmentation mask')
+
+    for i, sequence in enumerate(sequences):
+        mask_file = settings.intermediate_path.joinpath(settings.project, pid, f'brain_segmentation.nii.gz')
+        in_file = settings.intermediate_path.joinpath(settings.project, pid, f'{sequence}_co.nii.gz')
+        out_file = settings.intermediate_path.joinpath(settings.project, pid, f'{sequence}_hdbet.nii.gz')
+        crop_to_mask(in_file, mask_file, out_file)
+        out_file.rename(out_file.parent.joinpath(f'{pid}_000{i}.nii.gz'))
+
+    print(f'PID: {pid}. Application brain segmentation mask done')
+
     # #%% 5) N4BiasFieldCorrection
     #
     # # logger.warning(f'PID: {pid}. Perform N4BiasFieldCorrection')
