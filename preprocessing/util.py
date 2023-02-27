@@ -52,7 +52,7 @@ def registration(in_path, ref_path, out_path):
     :return: registered nifti file
     """
     flt = fsl.FLIRT(cost_func='mutualinfo',
-                    dof=7,
+                    dof=12,
                     searchr_x=[180, 180],
                     searchr_y=[180, 180],
                     searchr_z=[180, 180],

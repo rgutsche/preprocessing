@@ -8,7 +8,7 @@ from preprocessing.run_v2 import run_preprocessing
 from preprocessing import settings
 from preprocessing.helpers import worker_configurer
 
-settings.init(project_name='TEMP_V1')
+settings.init(project_name='TEMP_V2')
 
 number_of_processes = 4
 

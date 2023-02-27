@@ -74,29 +74,160 @@ def run_preprocessing(pid, queue, configurer):
     array = np.flip(np.flipud(np.fliplr(array)), 2)  # Changes the orientation
     nifti = nib.Nifti1Image(array, reference.affine)
     nib.save(nifti, settings.intermediate_path.joinpath(settings.project, pid, 'pet.nii.gz'))
+#
+    #%% 2) Registration
+    sequences = ['t1_km', 't2', 'flair', 'pet']
 
-    # Orientation (R und L + A und P müssen getauscht werden)
-    # pet_file_in = settings.intermediate_path.joinpath(settings.project, pid, 'pet.nii.gz')
-    # pet_file_out = settings.intermediate_path.joinpath(settings.project, pid, 'pet_v2.nii.gz')
-    #
-    # cmd = f'fslswapdim {pet_file_in} x y -z {pet_file_out}'
-    # os.system(cmd)
+    for sequence in sequences:
+        print(f'PID: {pid}. Registration for: {sequence}')
 
-#%% ### VERSUCHE ###
-    # import matplotlib.pyplot as plt
-    # x = array
-    # y = reference.get_fdata()
+        in_file = settings.intermediate_path.joinpath(settings.project, pid, f'{sequence}.nii.gz')
+        ref_file = settings.intermediate_path.joinpath(settings.project, pid, f't1_native.nii.gz')
+        out_file = settings.intermediate_path.joinpath(settings.project, pid, f'{sequence}_co.nii.gz')
+        registration(in_file, ref_file, out_file)
+
+    print(f'PID: {pid}. Registration for: {sequence} done')
+#
+    #%% 3) Brain Segmentation
+    print(f'PID: {pid}. Brain segmentation')
+
+    in_file = str(settings.intermediate_path.joinpath(settings.project, pid, f't1_native.nii.gz'))
+    out_file = settings.intermediate_path.joinpath(settings.project, pid, f't1_native_hdbet.nii.gz')
+    brain_segmentation(in_file, str(out_file), device=0)
+    out_file.rename(out_file.parent.joinpath(f'{pid}_0000.nii.gz'))
+
+    out_file.parent.joinpath(f't1_native_hdbet_mask.nii.gz').rename(out_file.parent.joinpath(f'brain_segmentation.nii.gz'))
+    print(f'PID: {pid}. Brain segmentation and renaming done.')
+
+
+    #%% 4) Multiply brain segmentation with images
+    print(f'PID: {pid}. Apply brain segmentation mask')
+
+    out_dir = settings.processed_path.joinpath(settings.project, pid)
+    if not out_dir.is_dir():
+        out_dir.mkdir(parents=True)
+
+    for i, sequence in enumerate(sequences):
+        mask_file = settings.intermediate_path.joinpath(settings.project, pid, f'brain_segmentation.nii.gz')
+        in_file = settings.intermediate_path.joinpath(settings.project, pid, f'{sequence}_co.nii.gz')
+        out_file = settings.intermediate_path.joinpath(settings.project, pid, f'{sequence}_hdbet.nii.gz')
+        crop_to_mask(in_file, mask_file, out_file)
+        out_file.rename(out_file.parent.joinpath(f'{pid}_000{i + 1}.nii.gz'))
+    print(f'PID: {pid}. Application brain segmentation mask done')
+
+    #%% 5) Move MRI files to processed directory
+    for i in range(4):
+        shutil.move(str(settings.intermediate_path.joinpath(settings.project, pid, f'{pid}_000{i}.nii.gz')), str(out_dir))
+
+    #%% 6) HD-GLIO MRI tumor segmentation
+
+    print(f'PID: {pid}. MR tumor segmentation')
+
+    mr_tumor_segmentation(str(out_dir), str(out_dir))
+
+    out_dir.joinpath(f'{pid}.nii.gz').rename(out_dir.joinpath(f'{pid}_mr_segmentation.nii.gz'))
+
+    shutil.move(str(
+        settings.intermediate_path.joinpath(settings.project, pid, f'brain_segmentation.nii.gz')),
+                out_dir)
+
+    out_dir.joinpath(f'brain_segmentation.nii.gz').rename(out_dir.joinpath(f'{pid}_brain_segmentation.nii.gz'))
+
+    to_remove = ['plans.pkl', 'postprocessing.json']
+    for remove in to_remove:
+        out_dir.joinpath(remove).unlink()
+
+    print(f'PID: {pid}. MR tumor segmentation done')
+
+#%% 7) PET nnUNet Tumor Segmentation
+    temp_dir = settings.intermediate_path.joinpath(settings.project, pid, 'temp')
+    if not temp_dir.is_dir():
+        temp_dir.mkdir(parents=True)
+    in_file = settings.intermediate_path.joinpath(settings.project, pid, f'{pid}_0004.nii.gz')
+    in_file.rename(in_file.parent.joinpath(f'{pid}_0000.nii.gz'))
+    in_file = settings.intermediate_path.joinpath(settings.project, pid, f'{pid}_0000.nii.gz')
+    shutil.move(str(in_file), str(temp_dir))
+    pet_tumor_segmentation(temp_dir, temp_dir)
+
+    temp_dir.joinpath(f'{pid}_0000.nii.gz').rename(temp_dir.joinpath(f'{pid}_0004.nii.gz'))
+    shutil.move(str(temp_dir.joinpath(f'{pid}_0004.nii.gz')), str(out_dir))
+
+    temp_dir.joinpath(f'{pid}.nii.gz').rename(temp_dir.joinpath(f'{pid}_pet_segmentation.nii.gz'))
+    shutil.move(str(temp_dir.joinpath(f'{pid}_pet_segmentation.nii.gz')), str(out_dir))
+
+# Mit Torchio einbauen (Resample + Standardization + Test ReTest Bild erzeugen)
+
+
+
+#%%
+# #%% 5) N4BiasFieldCorrection
+#
+# # logger.warning(f'PID: {pid}. Perform N4BiasFieldCorrection')
+# print(f'PID: {pid}. Perform N4BiasFieldCorrection')
+#
+# sequences = ['t1_native', 't1_km', 't2', 'flair']
+#
+# for i, sequence in enumerate(sequences):
+#     out_dir = settings.processed_path.joinpath(settings.project, pid, study)
+#     if not out_dir.is_dir():
+#         out_dir.mkdir(parents=True)
+#     in_file = str(settings.intermediate_path.joinpath(settings.project, pid, study, f'{sequence}_hdbet.nii.gz'))
+#     out_file = settings.processed_path.joinpath(settings.project, pid, study, f'{sequence}_hdbet_n4.nii.gz')
+#     brain_mask = str(
+#         settings.intermediate_path.joinpath(settings.project, pid, study, f'brain_segmentation.nii.gz'))
+#     n4_bias_field_correction(in_file, str(out_file), brain_mask)
+#
+#     # 6) Rename files to nnU-Net format
+#     out_file.rename(out_file.parent.joinpath(f'{pid}_000{i}.nii.gz'))
+#
+# # logger.warning(f'PID: {pid}. N4BiasFieldCorrection and renaming done')
+# print(f'PID: {pid}. N4BiasFieldCorrection and renaming done')
+
+    # logger.warning(f'PID: {pid}. MR tumor segmentation done')
     #
-    # fig, axs = plt.subplots(nrows=1, ncols=2)
-    # axs = axs.ravel()
-    # x_2 = np.flip(np.flipud(np.fliplr(x)), 2)
-    # # x_2 = np.flipud(np.fliplr(x))
-    # axs[0].imshow(x_2[..., 100], cmap='gray')
-    # axs[1].imshow(y[..., 100], cmap='gray')
-    # plt.show()
+    # #%% 8) Standardization
     #
-    # nifti = nib.Nifti1Image(x_2, reference.affine)
-    # nib.save(nifti, intermediate_path.joinpath('test_pet_3.nii.gz'))
+    # sequences = ['0000', '0001', '0002', '0003']
+    #
+    # brain_mask_path = in_dir_path.joinpath(f'{pid}_brain_segmentation.nii.gz')
+    # tumor_mask_path = in_dir_path.joinpath(f'{pid}_mr_segmentation.nii.gz')
+    # brain_mask_array = get_brain_mask_no_tumor(str(brain_mask_path), str(tumor_mask_path))
+    #
+    # # logger.warning(f'PID: {pid}. Doing standardization')
+    # print(f'PID: {pid}. Doing standardization')
+    #
+    # for sequence in sequences:
+    #     image_path = in_dir_path.joinpath(f'{pid}_{sequence}.nii.gz')
+    #     out_file = in_dir_path.joinpath(f'{pid}_{sequence}_std.nii.gz')
+    #     standardization(str(image_path), brain_mask_array, str(out_file))
+    # # logger.warning(f'PID: {pid}. Standardization done')
+    # # logger.warning(f'PID: {pid}. Preprocessing finished!')
+    # print(f'PID: {pid}. Standardization done')
+    # print(f'PID: {pid}. Preprocessing finished!')
+
+
+# Orientation (R und L + A und P müssen getauscht werden)
+# pet_file_in = settings.intermediate_path.joinpath(settings.project, pid, 'pet.nii.gz')
+# pet_file_out = settings.intermediate_path.joinpath(settings.project, pid, 'pet_v2.nii.gz')
+#
+# cmd = f'fslswapdim {pet_file_in} x y -z {pet_file_out}'
+# os.system(cmd)
+
+# %% ### VERSUCHE ###
+# import matplotlib.pyplot as plt
+# x = array
+# y = reference.get_fdata()
+#
+# fig, axs = plt.subplots(nrows=1, ncols=2)
+# axs = axs.ravel()
+# x_2 = np.flip(np.flipud(np.fliplr(x)), 2)
+# # x_2 = np.flipud(np.fliplr(x))
+# axs[0].imshow(x_2[..., 100], cmap='gray')
+# axs[1].imshow(y[..., 100], cmap='gray')
+# plt.show()
+#
+# nifti = nib.Nifti1Image(x_2, reference.affine)
+# nib.save(nifti, intermediate_path.joinpath('test_pet_3.nii.gz'))
 
 # # import matplotlib.pyplot as plt
 # #
@@ -184,132 +315,3 @@ def run_preprocessing(pid, queue, configurer):
 #     # #     in_file = settings.intermediate_path.joinpath(settings.project, pid, f'{sequence}.nii.gz')
 #     # #     out_file = settings.intermediate_path.joinpath(settings.project, pid, f'{sequence}_reorient.nii.gz')
 #     # #     reorient_2_std(in_file, out_file)
-#
-    #%% 2) Registration
-    sequences = ['t1_km', 't2', 'flair', 'pet']
-
-    for sequence in sequences:
-        print(f'PID: {pid}. Registration for: {sequence}')
-
-        in_file = settings.intermediate_path.joinpath(settings.project, pid, f'{sequence}.nii.gz')
-        ref_file = settings.intermediate_path.joinpath(settings.project, pid, f't1_native.nii.gz')
-        out_file = settings.intermediate_path.joinpath(settings.project, pid, f'{sequence}_co.nii.gz')
-        registration(in_file, ref_file, out_file)
-
-    print(f'PID: {pid}. Registration for: {sequence} done')
-#
-    #%% 3) Brain Segmentation
-    print(f'PID: {pid}. Brain segmentation')
-
-    in_file = str(settings.intermediate_path.joinpath(settings.project, pid, f't1_native.nii.gz'))
-    out_file = settings.intermediate_path.joinpath(settings.project, pid, f't1_native_hdbet.nii.gz')
-    brain_segmentation(in_file, str(out_file), device=0)
-    out_file.rename(out_file.parent.joinpath(f'{pid}_0000.nii.gz'))
-
-    out_file.parent.joinpath(f't1_native_hdbet_mask.nii.gz').rename(out_file.parent.joinpath(f'brain_segmentation.nii.gz'))
-    print(f'PID: {pid}. Brain segmentation and renaming done.')
-
-
-    #%% 4) Multiply brain segmentation with images
-    print(f'PID: {pid}. Apply brain segmentation mask')
-
-    out_dir = settings.processed_path.joinpath(settings.project, pid)
-    if not out_dir.is_dir():
-        out_dir.mkdir(parents=True)
-
-    for i, sequence in enumerate(sequences):
-        mask_file = settings.intermediate_path.joinpath(settings.project, pid, f'brain_segmentation.nii.gz')
-        in_file = settings.intermediate_path.joinpath(settings.project, pid, f'{sequence}_co.nii.gz')
-        out_file = settings.intermediate_path.joinpath(settings.project, pid, f'{sequence}_hdbet.nii.gz')
-        crop_to_mask(in_file, mask_file, out_file)
-        out_file.rename(out_file.parent.joinpath(f'{pid}_000{i + 1}.nii.gz'))
-    print(f'PID: {pid}. Application brain segmentation mask done')
-
-    #%% 5) Move MRI files to processed directory
-    for i in range(4):
-        shutil.move(str(settings.intermediate_path.joinpath(settings.project, pid, f'{pid}_000{i}.nii.gz')), str(out_dir))
-
-    #%% 6) HD-GLIO tumor segmentation
-
-    print(f'PID: {pid}. MR tumor segmentation')
-
-    mr_tumor_segmentation(str(out_dir), str(out_dir))
-
-    out_dir.joinpath(f'{pid}.nii.gz').rename(out_dir.joinpath(f'{pid}_mr_segmentation.nii.gz'))
-
-    shutil.move(str(
-        settings.intermediate_path.joinpath(settings.project, pid, f'brain_segmentation.nii.gz')),
-                out_dir)
-
-    out_dir.joinpath(f'brain_segmentation.nii.gz').rename(out_dir.joinpath(f'{pid}_brain_segmentation.nii.gz'))
-
-    to_remove = ['plans.pkl', 'postprocessing.json']
-    for remove in to_remove:
-        out_dir.joinpath(remove).unlink()
-
-    print(f'PID: {pid}. MR tumor segmentation done')
-
-#%% PET Segmentation
-    temp_dir = settings.intermediate_path.joinpath(settings.project, pid, 'temp')
-    if not temp_dir.is_dir():
-        temp_dir.mkdir(parents=True)
-    in_file = settings.intermediate_path.joinpath(settings.project, pid, f'{pid}_0004.nii.gz')
-    in_file.rename(in_file.parent.joinpath(f'{pid}_0000.nii.gz'))
-    in_file = settings.intermediate_path.joinpath(settings.project, pid, f'{pid}_0000.nii.gz')
-    shutil.move(str(in_file), str(temp_dir))
-    pet_tumor_segmentation(temp_dir, temp_dir)
-
-    temp_dir.joinpath(f'{pid}_0000.nii.gz').rename(temp_dir.joinpath(f'{pid}_0004.nii.gz'))
-    shutil.move(str(temp_dir.joinpath(f'{pid}_0004.nii.gz')), str(out_dir))
-
-    temp_dir.joinpath(f'{pid}.nii.gz').rename(temp_dir.joinpath(f'{pid}_pet_segmentation.nii.gz'))
-    shutil.move(str(temp_dir.joinpath(f'{pid}_pet_segmentation.nii.gz')), str(out_dir))
-
-
-
-
-#%%
-# #%% 5) N4BiasFieldCorrection
-#
-# # logger.warning(f'PID: {pid}. Perform N4BiasFieldCorrection')
-# print(f'PID: {pid}. Perform N4BiasFieldCorrection')
-#
-# sequences = ['t1_native', 't1_km', 't2', 'flair']
-#
-# for i, sequence in enumerate(sequences):
-#     out_dir = settings.processed_path.joinpath(settings.project, pid, study)
-#     if not out_dir.is_dir():
-#         out_dir.mkdir(parents=True)
-#     in_file = str(settings.intermediate_path.joinpath(settings.project, pid, study, f'{sequence}_hdbet.nii.gz'))
-#     out_file = settings.processed_path.joinpath(settings.project, pid, study, f'{sequence}_hdbet_n4.nii.gz')
-#     brain_mask = str(
-#         settings.intermediate_path.joinpath(settings.project, pid, study, f'brain_segmentation.nii.gz'))
-#     n4_bias_field_correction(in_file, str(out_file), brain_mask)
-#
-#     # 6) Rename files to nnU-Net format
-#     out_file.rename(out_file.parent.joinpath(f'{pid}_000{i}.nii.gz'))
-#
-# # logger.warning(f'PID: {pid}. N4BiasFieldCorrection and renaming done')
-# print(f'PID: {pid}. N4BiasFieldCorrection and renaming done')
-
-    # logger.warning(f'PID: {pid}. MR tumor segmentation done')
-    #
-    # #%% 8) Standardization
-    #
-    # sequences = ['0000', '0001', '0002', '0003']
-    #
-    # brain_mask_path = in_dir_path.joinpath(f'{pid}_brain_segmentation.nii.gz')
-    # tumor_mask_path = in_dir_path.joinpath(f'{pid}_mr_segmentation.nii.gz')
-    # brain_mask_array = get_brain_mask_no_tumor(str(brain_mask_path), str(tumor_mask_path))
-    #
-    # # logger.warning(f'PID: {pid}. Doing standardization')
-    # print(f'PID: {pid}. Doing standardization')
-    #
-    # for sequence in sequences:
-    #     image_path = in_dir_path.joinpath(f'{pid}_{sequence}.nii.gz')
-    #     out_file = in_dir_path.joinpath(f'{pid}_{sequence}_std.nii.gz')
-    #     standardization(str(image_path), brain_mask_array, str(out_file))
-    # # logger.warning(f'PID: {pid}. Standardization done')
-    # # logger.warning(f'PID: {pid}. Preprocessing finished!')
-    # print(f'PID: {pid}. Standardization done')
-    # print(f'PID: {pid}. Preprocessing finished!')
